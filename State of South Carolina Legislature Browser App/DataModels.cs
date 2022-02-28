@@ -46,6 +46,14 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 			}
 		}
 
+		/// <summary>
+		/// Add a title to the List of Titles
+		/// </summary>
+		/// <param name="title">The title to add</param>
+		/// <returns>
+		/// True if added and doesn't exist<para/>
+		/// False if it already exists
+		/// </returns>
 		public bool AddTitle(Title title)
 		{
 			if (!Titles.Contains(title))
@@ -62,6 +70,9 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 		}
 	}
 
+	/// <summary>
+	/// Provides an inheritable class that contains the consistent descriptors between all sub-units of law
+	/// </summary>
 	public abstract class LawSubUnit
 	{
 		/// <summary>
@@ -73,6 +84,11 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 		/// The description/identifier of the sub-unit
 		/// </summary>
 		public string Description { get; set; }
+
+		/// <summary>
+		/// The numeral that identifies this specific sub-unit
+		/// </summary>
+		public uint NumeralID { get; set; }
 	}
 
 	/// <summary>
@@ -89,12 +105,11 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 	/// <summary>
 	/// Holds the structure of the <see cref="Chapter">Chapters</see> within <see cref="Title">Titles</see>
 	/// </summary>
-	public class Chapter
+	public class Chapter : LawSubUnit
 	{
-		public string URL { get; set; }
-
-		public string Description { get; set; }
-
+		/// <summary>
+		/// The List of Articles within the parent object
+		/// </summary>
 		public List<Article> Articles { get; } = new List<Article>();
 	}
 
@@ -103,11 +118,15 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 	/// </summary>
 	public class Article
 	{
-		public string URL { get; set; }
-
-		public string Description { get; set; }
-
+		/// <summary>
+		/// The List of Sections within the parent object
+		/// </summary>
 		public List<Section> Sections { get; } = new List<Section>();
+
+		/// <summary>
+		/// The description/identifier of the sub-unit
+		/// </summary>
+		public string Description { get; set; }
 	}
 
 	/// <summary>
@@ -115,8 +134,11 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 	/// </summary>
 	public class Section
 	{
-		public string URL { get; set; }
+		public string Text;
 
+		/// <summary>
+		/// The description/identifier of the sub-unit
+		/// </summary>
 		public string Description { get; set; }
 	}
 }
