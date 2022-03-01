@@ -13,6 +13,7 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 	public class CodeOfLaws
 	{
 		public const string SubDirectory = "/code/statmast.php";
+		public const string ContentSectionXPath = "//div[@id=\"contentsection\"]";
 
 		/// <summary>
 		/// The sub-unit of the Code of Laws
@@ -135,6 +136,8 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 	public class Section
 	{
 		public string Text;
+		public string History;
+		public string EditorsNote;
 
 		/// <summary>
 		/// The description/identifier of the sub-unit
