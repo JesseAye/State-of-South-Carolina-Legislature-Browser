@@ -170,23 +170,6 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 					}
 				}
 
-				/*
-				else if (AllContent.ChildNodes[i].InnerText.StartsWith("\r\n\t")) //Catches (probably) all new paragraphs, with the exception of Editor's Note paragraphs
-				{
-					if (AllContent.ChildNodes[i].NextSibling.InnerText == ""
-							&& AllContent.ChildNodes[i].NextSibling.NextSibling.InnerText == "") // For performance, skip next sibling since it doesn't need to be processed
-					{
-						//TODO: Get this node's InnerText as a paragraph to the last identified Section
-						i += 2;
-					}
-
-					else
-					{
-						throw new Exception($"Missing logic after \"Article\" is found for the following InnerText at AllContent.ChildNodes[{i + 1}{i + 2}{i + 3}]:\n");
-					}
-				}
-				*/
-
 				else if (AllContent.ChildNodes[i].InnerText.StartsWith(History))
 				{
 					//TODO: Process HISTORY: as Section.History
@@ -254,27 +237,9 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 						{
 							i++;
 						} while (AllContent.ChildNodes[i].NextSibling.Name != "div"
-									|| AllContent.ChildNodes[i].NextSibling.Name != "span"); //TODO: Pick up here. This Do While does not break during the first Article instance
+									&& AllContent.ChildNodes[i].NextSibling.Name != "span");
 
 						continue;
-
-						/*
-						if (AllContent.ChildNodes[i].NextSibling.InnerText == ""
-								&& AllContent.ChildNodes[i].NextSibling.NextSibling.InnerText == "\r\n"
-								&& AllContent.ChildNodes[i].NextSibling.NextSibling.NextSibling.Name == "div") // For performance, skip next sibling since it doesn't need to be processed
-						{
-							//TODO: Get the 3rd sibling's InnerText as an Article
-							i += 3;
-						}
-
-						else
-						{
-							throw new Exception($"Missing logic after \"Article\" is found for the following InnerText at AllContent.ChildNodes[{i + 1}, {i + 2}, & {i + 3}]:\n" +
-								$"{i + 1} - {AllContent.ChildNodes[i + 1].InnerText}\n" +
-								$"{i + 2} - {AllContent.ChildNodes[i + 2].InnerText}\n" +
-								$"{i + 3} - {AllContent.ChildNodes[i + 3].InnerText}");
-						}
-						*/
 					}
 
 					else if (AllContent.ChildNodes[i].InnerText.StartsWith("CHAPTER "))
@@ -290,23 +255,6 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 						} while (AllContent.ChildNodes[i].NextSibling.Name != "div");
 
 						continue; // We should already have a Chapter object for this chapter, so just move on through the for loop
-
-						/*
-						if (AllContent.ChildNodes[i].NextSibling.InnerText == ""
-								&& AllContent.ChildNodes[i].NextSibling.NextSibling.InnerText == "\r\n"
-								&& AllContent.ChildNodes[i].NextSibling.NextSibling.NextSibling.Name == "div") // For performance, skip next 3 siblings since it doesn't need to be processed
-						{
-							i += 3;
-						}
-
-						else
-						{
-							throw new Exception($"Missing logic after \"Title\" is found for the following InnerText at AllContent.ChildNodes[{i + 1}, {i + 2}, & {i + 3}]:\n" +
-								$"{i + 1} - {AllContent.ChildNodes[i + 1].InnerText}\n" +
-								$"{i + 2} - {AllContent.ChildNodes[i + 2].InnerText}\n" +
-								$"{i + 3} - {AllContent.ChildNodes[i + 3].InnerText}");
-						}
-						*/
 					}
 
 					else if (AllContent.ChildNodes[i].InnerText.StartsWith("Title "))
