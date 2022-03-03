@@ -135,9 +135,11 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 	/// </summary>
 	public class Section
 	{
-		public string Text;
+		public List<string> Paragraphs;
 		public string History;
+		public string CodeCommissionersNote;
 		public string EditorsNote;
+		public string EffectOfAmendment;
 
 		/// <summary>
 		/// The description/identifier of the sub-unit
