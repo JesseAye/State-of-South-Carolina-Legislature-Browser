@@ -84,28 +84,7 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 		{
 			HtmlAgilityPack.HtmlDocument Chapter1Doc = ScrapeSite.GetPage(Domain + "/code/t01c001.php");
 
-			List<HtmlNode> XPathsToRemove = Chapter1Doc.DocumentNode.SelectSingleNode(CodeOfLaws.ContentSectionXPath).ChildNodes
-																.Where(node => node.Name == "br")
-																.Where(node => node.InnerText == ""
-																				&& !node.HasAttributes
-																				&& !node.HasChildNodes)
-																.ToList();
-
-			XPathsToRemove.AddRange(Chapter1Doc.DocumentNode.SelectSingleNode(CodeOfLaws.ContentSectionXPath).ChildNodes
-																.Where(node => node.Name == "#text")
-																.Where(node => (node.InnerText == "\r\n" || node.InnerText == "\r\n\r\n")
-																				&& !node.HasAttributes
-																				&& !node.HasChildNodes)
-																.ToList());
-
-			//Get a collection of <br> nodes that contain no text/attributes/child nodes, and remove each one. The collection has to be reversed because starting from the top modifies the index of the <br> as nodes are removed
-			foreach (string xpath in XPathsToRemove.OrderByDescending(node => node.Line)
-													.Select(node => node.XPath.Replace("#text", "text()")))
-			{
-				Chapter1Doc.DocumentNode.SelectSingleNode(xpath).Remove();
-			}
-
-			HtmlNode AllContent = Chapter1Doc.DocumentNode.SelectSingleNode(CodeOfLaws.ContentSectionXPath);
+			HtmlNode ContentSection = ScrapeSite.CleanContentSection(Chapter1Doc);
 
 			int SectionCount = 0;
 			int HistoryCount = 0;
@@ -118,46 +97,46 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 			string EditorsNote = "\r\nEditor's Note";
 			string EffectOfAmendment = "\r\nEffect of Amendment";
 
-			for (int i = 0; i < AllContent.ChildNodes.Count - 1; i++)
+			for (int i = 0; i < ContentSection.ChildNodes.Count - 1; i++)
 			{
-				if (AllContent.ChildNodes[i].Name == "span")
+				if (ContentSection.ChildNodes[i].Name == "span")
 				{
-					if (!AllContent.ChildNodes[i].InnerText.StartsWith("SECTION "))
+					if (!ContentSection.ChildNodes[i].InnerText.StartsWith("SECTION "))
 					{
-						throw new Exception($"Could not parse a <span> within the webpage. The InnerText \"{AllContent.ChildNodes[i].InnerText}\" did not begin with Section");
+						throw new Exception($"Could not parse a <span> within the webpage. The InnerText \"{ContentSection.ChildNodes[i].InnerText}\" did not begin with Section");
 					}
 
-					//Section.NumeralID = AllContent.ChildNodes[i].ChildNodes["a"].Attributes["name"].Value;
+					//Section.NumeralID = ContentSection.ChildNodes[i].ChildNodes["a"].Attributes["name"].Value;
 					SectionCount++;
 					i++; //Next line should be the Section description
 
-					if (AllContent.ChildNodes[i].Name == "#text")
+					if (ContentSection.ChildNodes[i].Name == "#text")
 					{
-						//Section.Description = AllContent.ChildNodes[i].InnerText.Trim();
+						//Section.Description = ContentSection.ChildNodes[i].InnerText.Trim();
 						i++;
 					}
 
 					else
 					{
-						throw new Exception($"The following ChildNode after {AllContent.ChildNodes[i].PreviousSibling.ChildNodes["#text"].InnerText} does not contain InnerText that describes that section.");
+						throw new Exception($"The following ChildNode after {ContentSection.ChildNodes[i].PreviousSibling.ChildNodes["#text"].InnerText} does not contain InnerText that describes that section.");
 					}
 
 					while (true)
 					{
-						if (AllContent.ChildNodes[i].InnerText.StartsWith(History)
-								|| AllContent.ChildNodes[i].InnerText.StartsWith(CodeCommissionersNote)
-								|| AllContent.ChildNodes[i].InnerText.StartsWith(EditorsNote)
-								|| AllContent.ChildNodes[i].InnerText.StartsWith(EffectOfAmendment)
-								|| AllContent.ChildNodes[i].Name == "span"
-								|| AllContent.ChildNodes[i].Name == "div")
+						if (ContentSection.ChildNodes[i].InnerText.StartsWith(History)
+								|| ContentSection.ChildNodes[i].InnerText.StartsWith(CodeCommissionersNote)
+								|| ContentSection.ChildNodes[i].InnerText.StartsWith(EditorsNote)
+								|| ContentSection.ChildNodes[i].InnerText.StartsWith(EffectOfAmendment)
+								|| ContentSection.ChildNodes[i].Name == "span"
+								|| ContentSection.ChildNodes[i].Name == "div")
 						{
 							i--;
 							break;
 						}
 
-						else if (AllContent.ChildNodes[i].Name == "#text")
+						else if (ContentSection.ChildNodes[i].Name == "#text")
 						{
-							//Section.Paragraphs.Add(AllContent.ChildNodes[i].InnerText);
+							//Section.Paragraphs.Add(ContentSection.ChildNodes[i].InnerText);
 							i++;
 						}
 
@@ -168,84 +147,84 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 					}
 				}
 
-				else if (AllContent.ChildNodes[i].InnerText.StartsWith(History))
+				else if (ContentSection.ChildNodes[i].InnerText.StartsWith(History))
 				{
 					//TODO: Process HISTORY: as Section.History
 					HistoryCount++;
 
-					while (!AllContent.ChildNodes[i].NextSibling.InnerText.StartsWith(CodeCommissionersNote)
-							&& !AllContent.ChildNodes[i].NextSibling.InnerText.StartsWith(EditorsNote)
-							&& !AllContent.ChildNodes[i].NextSibling.InnerText.StartsWith(EffectOfAmendment)
-							&& AllContent.ChildNodes[i].NextSibling.Name != "span"
-							&& AllContent.ChildNodes[i].NextSibling.Name != "div")
+					while (!ContentSection.ChildNodes[i].NextSibling.InnerText.StartsWith(CodeCommissionersNote)
+							&& !ContentSection.ChildNodes[i].NextSibling.InnerText.StartsWith(EditorsNote)
+							&& !ContentSection.ChildNodes[i].NextSibling.InnerText.StartsWith(EffectOfAmendment)
+							&& ContentSection.ChildNodes[i].NextSibling.Name != "span"
+							&& ContentSection.ChildNodes[i].NextSibling.Name != "div")
 					{
 						i++;
 					}
 				}
 
-				else if (AllContent.ChildNodes[i].InnerText.StartsWith(CodeCommissionersNote))
+				else if (ContentSection.ChildNodes[i].InnerText.StartsWith(CodeCommissionersNote))
 				{
 					//TODO: Process Code Commissioner's Note as Section.CodeCommissionersNote
 					CodeCommissionerCount++;
 
-					while (!AllContent.ChildNodes[i].NextSibling.InnerText.StartsWith(EditorsNote)
-							&& !AllContent.ChildNodes[i].NextSibling.InnerText.StartsWith(EffectOfAmendment)
-							&& AllContent.ChildNodes[i].NextSibling.Name != "span"
-							&& AllContent.ChildNodes[i].NextSibling.Name != "div")
+					while (!ContentSection.ChildNodes[i].NextSibling.InnerText.StartsWith(EditorsNote)
+							&& !ContentSection.ChildNodes[i].NextSibling.InnerText.StartsWith(EffectOfAmendment)
+							&& ContentSection.ChildNodes[i].NextSibling.Name != "span"
+							&& ContentSection.ChildNodes[i].NextSibling.Name != "div")
 					{
 						i++;
 					}
 				}
 
-				else if (AllContent.ChildNodes[i].InnerText.StartsWith(EditorsNote))
+				else if (ContentSection.ChildNodes[i].InnerText.StartsWith(EditorsNote))
 				{
 					//TODO: Process Editor's Notes as Section.EditorsNote
 					EditorsNoteCount++;
 
-					while (!AllContent.ChildNodes[i].NextSibling.InnerText.StartsWith(EffectOfAmendment)
-								&& AllContent.ChildNodes[i].NextSibling.Name != "span"
-								&& AllContent.ChildNodes[i].NextSibling.Name != "div")
+					while (!ContentSection.ChildNodes[i].NextSibling.InnerText.StartsWith(EffectOfAmendment)
+								&& ContentSection.ChildNodes[i].NextSibling.Name != "span"
+								&& ContentSection.ChildNodes[i].NextSibling.Name != "div")
 					{
 						i++;
 					}
 				}
 
-				else if (AllContent.ChildNodes[i].InnerText.StartsWith(EffectOfAmendment))
+				else if (ContentSection.ChildNodes[i].InnerText.StartsWith(EffectOfAmendment))
 				{
 					//TODO: Process Editor's Notes as Section.EditorsNote
 					EffectCount++;
 
-					while (AllContent.ChildNodes[i].NextSibling.Name != "span"
-							&& AllContent.ChildNodes[i].NextSibling.Name != "div")
+					while (ContentSection.ChildNodes[i].NextSibling.Name != "span"
+							&& ContentSection.ChildNodes[i].NextSibling.Name != "div")
 					{
 						i++;
 					}
 				}
 
-				else if (AllContent.ChildNodes[i].Name == "div")
+				else if (ContentSection.ChildNodes[i].Name == "div")
 				{
-					if (AllContent.ChildNodes[i].InnerText.StartsWith("ARTICLE "))
+					if (ContentSection.ChildNodes[i].InnerText.StartsWith("ARTICLE "))
 					{
-						//Article.NumeralID = Convert.ToInt32(AllContent.ChildNodes[i].ChildNodes["#text"].InnerText.Remove(0, 8));
+						//Article.NumeralID = Convert.ToInt32(ContentSection.ChildNodes[i].ChildNodes["#text"].InnerText.Remove(0, 8));
 						i++;
 
-						if (AllContent.ChildNodes[i].Name != "div")
+						if (ContentSection.ChildNodes[i].Name != "div")
 						{
 							throw new Exception($"The next <div> at {i} after Article is not another <div> that describes the article.");
 						}
 
-						//Article.Description = AllContent.ChildNodes[i].InnerText.Trim();
+						//Article.Description = ContentSection.ChildNodes[i].InnerText.Trim();
 
 						continue;
 					}
 
-					else if (AllContent.ChildNodes[i].InnerText.StartsWith("CHAPTER "))
+					else if (ContentSection.ChildNodes[i].InnerText.StartsWith("CHAPTER "))
 					{
 						i++; //The next line is just the Chapter description, skip it
 						continue; //We should already have a Chapter object for this chapter, so just move on through the for loop
 					}
 
-					else if (AllContent.ChildNodes[i].InnerText.StartsWith("Title "))
+					else if (ContentSection.ChildNodes[i].InnerText.StartsWith("Title "))
 					{
 						continue; // We should already have a Title object for this title, so just move on through the for loop
 					}
@@ -258,7 +237,7 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 
 				else
 				{//BP Here and check for any outliers
-					//TODO: Handle instances such as t01c001.php AllContent.ChildNodes[331].InnerHTML is "\r\nThe State Insect"
+					//TODO: Handle instances such as t01c001.php ContentSection.ChildNodes[331].InnerHTML is "\r\nThe State Insect"
 				}
 			}
 		}
