@@ -82,16 +82,28 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 		/// </summary>
 		private void GetFirstArticleSection()
 		{
-			/*
-			string XPathChapter = CodeOfLaws.ContentSectionXPath + "/table/tr/td/a[starts-with(@href, '/code')]";
-			HtmlAgilityPack.HtmlDocument Title1 = ScrapeSite.GetPage(Domain + CodeOfLaws.Titles[0].URL);
-
-			HtmlNodeCollection AllTitle1Chapters = Title1.DocumentNode.SelectNodes(XPathChapter);
-			AllTitle1Chapters.Insert(4, _TEMPORARY_GetChapter7(Title1));
-			Chapter Chapter1 = AllTitle1Chapters.Where(a => a.Attributes["href"].Value.Contains("t01c001")).Select(chapter => new Chapter() { URL = chapter.Attributes["href"].Value }).First();
-			*/
-
 			HtmlAgilityPack.HtmlDocument Chapter1Doc = ScrapeSite.GetPage(Domain + "/code/t01c001.php");
+
+			List<HtmlNode> XPathsToRemove = Chapter1Doc.DocumentNode.SelectSingleNode(CodeOfLaws.ContentSectionXPath).ChildNodes
+																.Where(node => node.Name == "br")
+																.Where(node => node.InnerText == ""
+																				&& !node.HasAttributes
+																				&& !node.HasChildNodes)
+																.ToList();
+
+			XPathsToRemove.AddRange(Chapter1Doc.DocumentNode.SelectSingleNode(CodeOfLaws.ContentSectionXPath).ChildNodes
+																.Where(node => node.Name == "#text")
+																.Where(node => (node.InnerText == "\r\n" || node.InnerText == "\r\n\r\n")
+																				&& !node.HasAttributes
+																				&& !node.HasChildNodes)
+																.ToList());
+
+			//Get a collection of <br> nodes that contain no text/attributes/child nodes, and remove each one. The collection has to be reversed because starting from the top modifies the index of the <br> as nodes are removed
+			foreach (string xpath in XPathsToRemove.OrderByDescending(node => node.Line)
+													.Select(node => node.XPath.Replace("#text", "text()")))
+			{
+				Chapter1Doc.DocumentNode.SelectSingleNode(xpath).Remove();
+			}
 
 			HtmlNode AllContent = Chapter1Doc.DocumentNode.SelectSingleNode(CodeOfLaws.ContentSectionXPath);
 
@@ -105,68 +117,54 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 			string CodeCommissionersNote = "\r\nCode Commissioner's Note";
 			string EditorsNote = "\r\nEditor's Note";
 			string EffectOfAmendment = "\r\nEffect of Amendment";
-			
-			/*
-			var NodeTypes = AllContent.ChildNodes.GroupBy(node => node.Name)
-													.Select(node => node.First());
-
-			var AllNonEmptyBRs = AllContent.ChildNodes
-								.Where(node => node.Name == "br")
-								.Where(node => node.InnerText != ""
-													|| node.HasAttributes
-													|| node.HasChildNodes);
-
-			var AllNonEmptyPoundTexts = AllContent.ChildNodes.Where(node => node.Name == "#text")
-																.Where(node => node.InnerText != "\r\n"
-																					&& node.InnerText != "\r\n\r\n");
-
-			var AllEmptyPoundTexts = AllContent.ChildNodes.Where(node => node.Name == "#text")
-																.Where(node => node.HasAttributes
-																					|| node.HasChildNodes);
-
-			var AllDivs = AllContent.ChildNodes.Where(node => node.Name == "div"); //All <div> nodes should be Title, Chapter (+ description), and Articles
-
-			var AllSpans = AllContent.ChildNodes.Where(node => node.Name == "span"); //All <span> nodes should be defining a Section
-
-			if (AllNonEmptyBRs.Count() > 0)
-			{
-				throw new Exception("Not all <br> nodes in the HTML Document are empty. The developer will need to properly handle this exception.");
-			}
-			*/
 
 			for (int i = 0; i < AllContent.ChildNodes.Count - 1; i++)
 			{
-				if (AllContent.ChildNodes[i].Name == "br")
-				{
-					continue;
-				}
-
-				else if (AllContent.ChildNodes[i].InnerText == "\r\n"
-							|| AllContent.ChildNodes[i].InnerText == "\r\n\r\n")
-				{
-					continue;
-				}
-
-				else if (AllContent.ChildNodes[i].Name == "span")
+				if (AllContent.ChildNodes[i].Name == "span")
 				{
 					if (!AllContent.ChildNodes[i].InnerText.StartsWith("SECTION "))
 					{
 						throw new Exception($"Could not parse a <span> within the webpage. The InnerText \"{AllContent.ChildNodes[i].InnerText}\" did not begin with Section");
 					}
 
-					if (AllContent.ChildNodes[i].NextSibling.Name == "#text"
-							&& AllContent.ChildNodes[i].NextSibling.NextSibling.InnerText == ""
-							&& AllContent.ChildNodes[i].NextSibling.NextSibling.NextSibling.InnerText == "") // For performance, skip next sibling since it doesn't need to be processed
+					//Section.NumeralID = AllContent.ChildNodes[i].ChildNodes["a"].Attributes["name"].Value;
+					SectionCount++;
+					i++; //Next line should be the Section description
+
+					if (AllContent.ChildNodes[i].Name == "#text")
 					{
-						//TODO: Get the 1st sibling's InnerText as an Article (Substring(1) or Trim(), it looks like they typically have a space at the beginning)
-						i += 3;
-						SectionCount++;
+						//Section.Description = AllContent.ChildNodes[i].InnerText.Trim();
+						i++;
 					}
 
 					else
 					{
-						throw new Exception($"Missing logic after \"Section\" is found for the following InnerText at AllContent.ChildNodes[{i + 1}, {i + 2}, & {i + 3}]:\n" +
-							$"{i + 1} - {AllContent.ChildNodes[i + 1].InnerText}\n");
+						throw new Exception($"The following ChildNode after {AllContent.ChildNodes[i].PreviousSibling.ChildNodes["#text"].InnerText} does not contain InnerText that describes that section.");
+					}
+
+					while (true)
+					{
+						if (AllContent.ChildNodes[i].InnerText.StartsWith(History)
+								|| AllContent.ChildNodes[i].InnerText.StartsWith(CodeCommissionersNote)
+								|| AllContent.ChildNodes[i].InnerText.StartsWith(EditorsNote)
+								|| AllContent.ChildNodes[i].InnerText.StartsWith(EffectOfAmendment)
+								|| AllContent.ChildNodes[i].Name == "span"
+								|| AllContent.ChildNodes[i].Name == "div")
+						{
+							i--;
+							break;
+						}
+
+						else if (AllContent.ChildNodes[i].Name == "#text")
+						{
+							//Section.Paragraphs.Add(AllContent.ChildNodes[i].InnerText);
+							i++;
+						}
+
+						else
+						{
+							throw new Exception($"Unexpected node while scanning through a <span> Section.");
+						}
 					}
 				}
 
@@ -228,38 +226,33 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 				{
 					if (AllContent.ChildNodes[i].InnerText.StartsWith("ARTICLE "))
 					{
-						do
-						{
-							i++;
-						} while (AllContent.ChildNodes[i].Name != "div");
+						//Article.NumeralID = Convert.ToInt32(AllContent.ChildNodes[i].ChildNodes["#text"].InnerText.Remove(0, 8));
+						i++;
 
-						do
+						if (AllContent.ChildNodes[i].Name != "div")
 						{
-							i++;
-						} while (AllContent.ChildNodes[i].NextSibling.Name != "div"
-									&& AllContent.ChildNodes[i].NextSibling.Name != "span");
+							throw new Exception($"The next <div> at {i} after Article is not another <div> that describes the article.");
+						}
+
+						//Article.Description = AllContent.ChildNodes[i].InnerText.Trim();
 
 						continue;
 					}
 
 					else if (AllContent.ChildNodes[i].InnerText.StartsWith("CHAPTER "))
 					{
-						do
-						{
-							i++;
-						} while (AllContent.ChildNodes[i].Name != "div");
-
-						do
-						{
-							i++;
-						} while (AllContent.ChildNodes[i].NextSibling.Name != "div");
-
-						continue; // We should already have a Chapter object for this chapter, so just move on through the for loop
+						i++; //The next line is just the Chapter description, skip it
+						continue; //We should already have a Chapter object for this chapter, so just move on through the for loop
 					}
 
 					else if (AllContent.ChildNodes[i].InnerText.StartsWith("Title "))
 					{
 						continue; // We should already have a Title object for this title, so just move on through the for loop
+					}
+
+					else
+					{
+						throw new Exception($"<div> at index {i} is not an Article, Chapter, or Title.");
 					}
 				}
 

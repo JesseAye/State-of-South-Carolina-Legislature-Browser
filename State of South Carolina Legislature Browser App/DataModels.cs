@@ -76,10 +76,6 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 	/// </summary>
 	public abstract class LawSubUnit
 	{
-		/// <summary>
-		/// The URL of this sub-unit
-		/// </summary>
-		public string URL { get; set; }
 
 		/// <summary>
 		/// The description/identifier of the sub-unit
@@ -101,6 +97,11 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 		/// The <see cref="List{Chapter}">List of Chapters</see> within the parent object 
 		/// </summary>
 		public List<Chapter> Chapters { get; } = new List<Chapter>();
+
+		/// <summary>
+		/// The URL of this sub-unit
+		/// </summary>
+		public string URL { get; set; }
 	}
 
 	/// <summary>
@@ -112,38 +113,33 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 		/// The List of Articles within the parent object
 		/// </summary>
 		public List<Article> Articles { get; } = new List<Article>();
+
+		/// <summary>
+		/// The URL of this sub-unit
+		/// </summary>
+		public string URL { get; set; }
 	}
 
 	/// <summary>
 	/// Holds the structure of the <see cref="Article">Articles</see> within <see cref="Chapter">Chapters</see>
 	/// </summary>
-	public class Article
+	public class Article : LawSubUnit
 	{
 		/// <summary>
 		/// The List of Sections within the parent object
 		/// </summary>
 		public List<Section> Sections { get; } = new List<Section>();
-
-		/// <summary>
-		/// The description/identifier of the sub-unit
-		/// </summary>
-		public string Description { get; set; }
 	}
 
 	/// <summary>
 	/// Holds the structure of the <see cref="Section">Sections</see> within <see cref="Article">Articles</see>
 	/// </summary>
-	public class Section
+	public class Section : LawSubUnit
 	{
 		public List<string> Paragraphs;
-		public string History;
-		public string CodeCommissionersNote;
-		public string EditorsNote;
-		public string EffectOfAmendment;
-
-		/// <summary>
-		/// The description/identifier of the sub-unit
-		/// </summary>
-		public string Description { get; set; }
+		public List<string> History;
+		public List<string> CodeCommissionersNote;
+		public List<string> EditorsNote;
+		public List<string> EffectOfAmendment;
 	}
 }
