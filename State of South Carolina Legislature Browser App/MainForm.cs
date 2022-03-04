@@ -97,22 +97,29 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 			string EditorsNote = "\r\nEditor's Note";
 			string EffectOfAmendment = "\r\nEffect of Amendment";
 
+			Chapter chapter1 = new Chapter() { NumeralID = 1 };
+			uint articleIndex = 0;
+			uint sectionIndex = 0;
+
 			for (int i = 0; i < ContentSection.ChildNodes.Count - 1; i++)
 			{
 				if (ContentSection.ChildNodes[i].Name == "span")
 				{
+					Section section = new Section();
+
 					if (!ContentSection.ChildNodes[i].InnerText.StartsWith("SECTION "))
 					{
 						throw new Exception($"Could not parse a <span> within the webpage. The InnerText \"{ContentSection.ChildNodes[i].InnerText}\" did not begin with Section");
 					}
 
-					//Section.NumeralID = ContentSection.ChildNodes[i].ChildNodes["a"].Attributes["name"].Value;
+					section.NumeralID = Convert.ToUInt32(ContentSection.ChildNodes[i].ChildNodes["a"].Attributes["name"].Value.Replace($"{chapter1.NumeralID}-{articleIndex}-", "").Trim('.'));
+					sectionIndex = section.NumeralID;
 					SectionCount++;
 					i++; //Next line should be the Section description
 
 					if (ContentSection.ChildNodes[i].Name == "#text")
 					{
-						//Section.Description = ContentSection.ChildNodes[i].InnerText.Trim();
+						section.Description = ContentSection.ChildNodes[i].InnerText.Trim();
 						i++;
 					}
 
@@ -136,7 +143,7 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 
 						else if (ContentSection.ChildNodes[i].Name == "#text")
 						{
-							//Section.Paragraphs.Add(ContentSection.ChildNodes[i].InnerText);
+							section.Paragraphs.Add(ContentSection.ChildNodes[i].InnerText);
 							i++;
 						}
 
@@ -145,6 +152,8 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 							throw new Exception($"Unexpected node while scanning through a <span> Section.");
 						}
 					}
+
+					chapter1.Articles.Where(article => article.NumeralID == articleIndex).First().Sections.Add(section);
 				}
 
 				else if (ContentSection.ChildNodes[i].InnerText.StartsWith(History))
@@ -152,13 +161,30 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 					//TODO: Process HISTORY: as Section.History
 					HistoryCount++;
 
-					while (!ContentSection.ChildNodes[i].NextSibling.InnerText.StartsWith(CodeCommissionersNote)
-							&& !ContentSection.ChildNodes[i].NextSibling.InnerText.StartsWith(EditorsNote)
-							&& !ContentSection.ChildNodes[i].NextSibling.InnerText.StartsWith(EffectOfAmendment)
-							&& ContentSection.ChildNodes[i].NextSibling.Name != "span"
-							&& ContentSection.ChildNodes[i].NextSibling.Name != "div")
+					while (true)
 					{
-						i++;
+						if (ContentSection.ChildNodes[i].InnerText.StartsWith(CodeCommissionersNote)
+							|| ContentSection.ChildNodes[i].InnerText.StartsWith(EditorsNote)
+							|| ContentSection.ChildNodes[i].InnerText.StartsWith(EffectOfAmendment)
+							|| ContentSection.ChildNodes[i].Name == "span"
+							|| ContentSection.ChildNodes[i].Name == "div")
+						{
+							i--;
+							break;
+						}
+
+						else if (ContentSection.ChildNodes[i].Name == "#text")
+						{
+							chapter1.Articles.Where(article => article.NumeralID == articleIndex).First()
+												.Sections.Where(section => section.NumeralID == sectionIndex).First()
+												.History.Add(ContentSection.ChildNodes[i].InnerText.Replace(History, ""));
+							i++;//TODO: This is where I left off. History seems to be added correctly to the Section object. Only tried the very first section so far.
+						}
+
+						else
+						{
+							throw new Exception($"Unexpected node while scanning through HISTORY: of Section {chapter1.NumeralID}-{articleIndex}-{sectionIndex}");
+						}
 					}
 				}
 
@@ -205,7 +231,10 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 				{
 					if (ContentSection.ChildNodes[i].InnerText.StartsWith("ARTICLE "))
 					{
-						//Article.NumeralID = Convert.ToInt32(ContentSection.ChildNodes[i].ChildNodes["#text"].InnerText.Remove(0, 8));
+						Article article = new Article();
+						article.NumeralID = Convert.ToUInt32(ContentSection.ChildNodes[i].ChildNodes["#text"].InnerText.Remove(0, 8));
+						articleIndex = article.NumeralID;
+
 						i++;
 
 						if (ContentSection.ChildNodes[i].Name != "div")
@@ -213,7 +242,8 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 							throw new Exception($"The next <div> at {i} after Article is not another <div> that describes the article.");
 						}
 
-						//Article.Description = ContentSection.ChildNodes[i].InnerText.Trim();
+						article.Description = ContentSection.ChildNodes[i].InnerText.Trim();
+						chapter1.Articles.Add(article);
 
 						continue;
 					}

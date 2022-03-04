@@ -136,10 +136,10 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 	/// </summary>
 	public class Section : LawSubUnit
 	{
-		public List<string> Paragraphs;
-		public List<string> History;
-		public List<string> CodeCommissionersNote;
-		public List<string> EditorsNote;
-		public List<string> EffectOfAmendment;
+		public List<string> Paragraphs = new List<string>();
+		public List<string> History = new List<string>();
+		public List<string> CodeCommissionersNote = new List<string>();
+		public List<string> EditorsNote = new List<string>();
+		public List<string> EffectOfAmendment = new List<string>();
 	}
 }
