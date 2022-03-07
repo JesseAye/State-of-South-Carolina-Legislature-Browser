@@ -69,6 +69,27 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 				return false;
 			}
 		}
+
+		/// <summary>
+		/// Get a <see cref="Title"/> from <see cref="CodeOfLaws"/> based on it's NumeralID
+		/// </summary>
+		/// <param name="NumeralID">The Title's number</param>
+		/// <returns>The <see cref="Title"/> with the specified NumeralID</returns>
+		public Title this[int NumeralID]
+		{
+			get
+			{
+				foreach (Title title in Titles)
+				{
+					if (title.NumeralID == NumeralID.ToString())
+					{
+						return title;
+					}
+				}
+
+				throw new Exception($"CodeOfLaws[{NumeralID}] does not exist. No Title with a NumeralID of {NumeralID} could be found in CodeOfLaws.Titles.");
+			}
+		}
 	}
 
 	/// <summary>
@@ -102,6 +123,27 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 		/// The URL of this sub-unit
 		/// </summary>
 		public string URL { get; set; }
+
+		/// <summary>
+		/// Get a <see cref="Chapter"/> from <see cref="Chapters">Chapters</see> based on it's NumeralID
+		/// </summary>
+		/// <param name="NumeralID">The Chapter's number</param>
+		/// <returns>The <see cref="Chapter"/> with the specified NumeralID</returns>
+		public Chapter this[int NumeralID]
+		{
+			get
+			{
+				foreach (Chapter chapter in Chapters)
+				{
+					if (chapter.NumeralID == NumeralID.ToString())
+					{
+						return chapter;
+					}
+				}
+
+				throw new Exception($"Title {this.NumeralID} Chapter {NumeralID} does not exist. No Chapter with a NumeralID of {NumeralID} could be found in Title {this.NumeralID}.Chapters.");
+			}
+		}
 	}
 
 	/// <summary>
@@ -118,6 +160,30 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 		/// The URL of this sub-unit
 		/// </summary>
 		public string URL { get; set; }
+
+		/// <summary>
+		/// Get a <see cref="Section"/> from <see cref="Article.Sections">Article.Sections</see> based on it's NumeralID
+		/// </summary>
+		/// <param name="NumeralID">The Section's number</param>
+		/// <returns>The <see cref="Section"/> with the specified NumeralID</returns>
+		public Section this[int NumeralID]
+		{
+			get
+			{
+				foreach (Article article in Articles)
+				{
+					foreach (Section section in article.Sections)
+					{
+						if (section.NumeralID == NumeralID.ToString())
+						{
+							return section;
+						}
+					}
+				}
+
+				throw new Exception($"\"Chapter {this.NumeralID} - {Description}\" does not contain a Section ending in {NumeralID}.");
+			}
+		}
 	}
 
 	/// <summary>
