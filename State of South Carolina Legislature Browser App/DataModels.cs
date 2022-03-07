@@ -85,7 +85,7 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 		/// <summary>
 		/// The numeral that identifies this specific sub-unit
 		/// </summary>
-		public uint NumeralID { get; set; }
+		public string NumeralID { get; set; }
 	}
 
 	/// <summary>

@@ -42,7 +42,7 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 													.Where(a => a.InnerText.StartsWith("Title"))
 													.Select(title => new Title() {  URL = title.Attributes["href"].Value,
 																					Description = title.NextSibling.InnerText.Substring(3),
-																					NumeralID = Convert.ToUInt32(title.InnerText.Substring(6)) })
+																					NumeralID = title.InnerText.Substring(6) })
 													.ToList();
 
 			foreach (Title title in TitleNodes)
@@ -67,7 +67,7 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 				HtmlAgilityPack.HtmlDocument TitleDoc = ScrapeSite.GetPage(Domain + title.URL);
 				HtmlNodeCollection AllChapters = TitleDoc.DocumentNode.SelectNodes(XPathChapter);
 
-				if (title.NumeralID == 0)
+				if (title.NumeralID == "1")
 				{
 					AllChapters.Insert(4, _TEMPORARY_GetChapter7(TitleDoc));
 				}
@@ -97,9 +97,9 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 			string EditorsNote = "\r\nEditor's Note";
 			string EffectOfAmendment = "\r\nEffect of Amendment";
 
-			Chapter chapter1 = new Chapter() { NumeralID = 1 };
-			uint articleIndex = 0;
-			uint sectionIndex = 0;
+			Chapter chapter1 = new Chapter() { NumeralID = "1" };
+			string articleIndex = "0";
+			string sectionIndex = "0";
 
 			for (int i = 0; i < ContentSection.ChildNodes.Count - 1; i++)
 			{
@@ -112,7 +112,7 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 						throw new Exception($"Could not parse a <span> within the webpage. The InnerText \"{ContentSection.ChildNodes[i].InnerText}\" did not begin with Section");
 					}
 
-					section.NumeralID = Convert.ToUInt32(ContentSection.ChildNodes[i].ChildNodes["a"].Attributes["name"].Value.Replace($"{chapter1.NumeralID}-{articleIndex}-", "").Trim('.'));
+					section.NumeralID = ContentSection.ChildNodes[i].ChildNodes["a"].Attributes["name"].Value.Replace($"1-{chapter1.NumeralID}-", "").Trim('.');
 					sectionIndex = section.NumeralID;
 					SectionCount++;
 					i++; //Next line should be the Section description
@@ -153,12 +153,11 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 						}
 					}
 
-					chapter1.Articles.Where(article => article.NumeralID == articleIndex).First().Sections.Add(section);
+					chapter1.Articles.Where(article => article.NumeralID == articleIndex.ToString()).First().Sections.Add(section);
 				}
 
 				else if (ContentSection.ChildNodes[i].InnerText.StartsWith(History))
 				{
-					//TODO: Process HISTORY: as Section.History
 					HistoryCount++;
 
 					while (true)
@@ -175,10 +174,10 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 
 						else if (ContentSection.ChildNodes[i].Name == "#text")
 						{
-							chapter1.Articles.Where(article => article.NumeralID == articleIndex).First()
+							chapter1.Articles.Where(article => article.NumeralID == articleIndex.ToString()).First()
 												.Sections.Where(section => section.NumeralID == sectionIndex).First()
 												.History.Add(ContentSection.ChildNodes[i].InnerText.Replace(History, ""));
-							i++;//TODO: This is where I left off. History seems to be added correctly to the Section object. Only tried the very first section so far.
+							i++;
 						}
 
 						else
@@ -190,40 +189,91 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 
 				else if (ContentSection.ChildNodes[i].InnerText.StartsWith(CodeCommissionersNote))
 				{
-					//TODO: Process Code Commissioner's Note as Section.CodeCommissionersNote
 					CodeCommissionerCount++;
+					i++;
 
-					while (!ContentSection.ChildNodes[i].NextSibling.InnerText.StartsWith(EditorsNote)
-							&& !ContentSection.ChildNodes[i].NextSibling.InnerText.StartsWith(EffectOfAmendment)
-							&& ContentSection.ChildNodes[i].NextSibling.Name != "span"
-							&& ContentSection.ChildNodes[i].NextSibling.Name != "div")
+					while (true)
 					{
-						i++;
+						if (ContentSection.ChildNodes[i].InnerText.StartsWith(EditorsNote)
+							|| ContentSection.ChildNodes[i].InnerText.StartsWith(EffectOfAmendment)
+							|| ContentSection.ChildNodes[i].Name == "span"
+							|| ContentSection.ChildNodes[i].Name == "div")
+						{
+							i--;
+							break;
+						}
+
+						else if (ContentSection.ChildNodes[i].Name == "#text")
+						{
+							chapter1.Articles.Where(article => article.NumeralID == articleIndex.ToString()).First()
+												.Sections.Where(section => section.NumeralID == sectionIndex).First()
+												.CodeCommissionersNote.Add(ContentSection.ChildNodes[i].InnerText);
+							i++;
+						}
+
+						else
+						{
+							throw new Exception($"Unexpected node while scanning through Code Commissioner's Note of Section {chapter1.NumeralID}-{articleIndex}-{sectionIndex}");
+						}
 					}
 				}
 
 				else if (ContentSection.ChildNodes[i].InnerText.StartsWith(EditorsNote))
 				{
-					//TODO: Process Editor's Notes as Section.EditorsNote
 					EditorsNoteCount++;
+					i++;
 
-					while (!ContentSection.ChildNodes[i].NextSibling.InnerText.StartsWith(EffectOfAmendment)
-								&& ContentSection.ChildNodes[i].NextSibling.Name != "span"
-								&& ContentSection.ChildNodes[i].NextSibling.Name != "div")
+					while (true)
 					{
-						i++;
+						if (ContentSection.ChildNodes[i].InnerText.StartsWith(EffectOfAmendment)
+							|| ContentSection.ChildNodes[i].Name == "span"
+							|| ContentSection.ChildNodes[i].Name == "div")
+						{
+							i--;
+							break;
+						}
+
+						else if (ContentSection.ChildNodes[i].Name == "#text")
+						{
+							chapter1.Articles.Where(article => article.NumeralID == articleIndex.ToString()).First()
+												.Sections.Where(section => section.NumeralID == sectionIndex).First()
+												.EditorsNote.Add(ContentSection.ChildNodes[i].InnerText);
+							i++;
+						}
+
+						else
+						{
+							throw new Exception($"Unexpected node while scanning through Editor's Note of Section {chapter1.NumeralID}-{articleIndex}-{sectionIndex}");
+						}
 					}
 				}
 
 				else if (ContentSection.ChildNodes[i].InnerText.StartsWith(EffectOfAmendment))
 				{
-					//TODO: Process Editor's Notes as Section.EditorsNote
 					EffectCount++;
+					i++;
 
-					while (ContentSection.ChildNodes[i].NextSibling.Name != "span"
-							&& ContentSection.ChildNodes[i].NextSibling.Name != "div")
+					while (true)
 					{
-						i++;
+						if (ContentSection.ChildNodes[i].Name == "span"
+							|| ContentSection.ChildNodes[i].Name == "div")
+						{
+							i--;
+							break;
+						}
+
+						else if (ContentSection.ChildNodes[i].Name == "#text")
+						{
+							chapter1.Articles.Where(article => article.NumeralID == articleIndex.ToString()).First()
+												.Sections.Where(section => section.NumeralID == sectionIndex).First()
+												.EffectOfAmendment.Add(ContentSection.ChildNodes[i].InnerText);
+							i++;
+						}
+
+						else
+						{
+							throw new Exception($"Unexpected node while scanning through Effect of Amendment of Section {chapter1.NumeralID}-{articleIndex}-{sectionIndex}");
+						}
 					}
 				}
 
@@ -232,7 +282,7 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 					if (ContentSection.ChildNodes[i].InnerText.StartsWith("ARTICLE "))
 					{
 						Article article = new Article();
-						article.NumeralID = Convert.ToUInt32(ContentSection.ChildNodes[i].ChildNodes["#text"].InnerText.Remove(0, 8));
+						article.NumeralID = ContentSection.ChildNodes[i].ChildNodes["#text"].InnerText.Remove(0, 8);
 						articleIndex = article.NumeralID;
 
 						i++;
