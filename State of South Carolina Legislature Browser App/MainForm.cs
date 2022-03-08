@@ -62,6 +62,7 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 			//throw new NotImplementedException();
 			//string XPathChapter = CodeOfLaws.ContentSectionXPath + "/table/tr/td/a[starts-with(@href, '/code')]";
 			string XPathChapter = CodeOfLaws.ContentSectionXPath + "/table/tr";
+			int NumeralID_Offset = 8;
 
 			foreach (Title title in CodeOfLaws.Titles)
 			{
@@ -73,7 +74,18 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 					AllChapters.Insert(4, _TEMPORARY_GetTitle1Chapter7(TitleDoc));
 				}
 
-				//CodeOfLaws[title.NumeralID].Chapters.Add(new Chapter() { NumeralID = AllChapters[ });
+				foreach (HtmlNode ChapterNode in AllChapters)
+				{
+					string URL = ChapterNode.ChildNodes.Where(node => node.Name == "td").ElementAt(1).ChildNodes["a"].Attributes["href"].Value;
+					string ChapterText = ChapterNode.ChildNodes.Where(node => node.Name == "td").ElementAt(0).InnerText;
+					string NumeralID = ChapterText.Substring(NumeralID_Offset, ChapterText.IndexOf(" -") - NumeralID_Offset);
+					string Description = ChapterText.Substring(ChapterText.IndexOf(" - ") + 3);
+
+					CodeOfLaws[title.NumeralID].Chapters.Add(new Chapter() { NumeralID = NumeralID, Description = Description, URL = URL });
+
+					ParseChapter(URL, title.NumeralID, NumeralID);
+					Thread.Sleep(1000);
+				}
 			}
 		}
 
@@ -99,6 +111,7 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 
 			string articleIndex = "0";
 			string sectionIndex = "0";
+			bool HasArticle = false;
 
 			for (int i = 0; i < ContentSection.ChildNodes.Count - 1; i++)
 			{
@@ -272,31 +285,112 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 				{
 					if (ContentSection.ChildNodes[i].InnerText.StartsWith("ARTICLE "))
 					{
-						Article article = new Article();
-						article.NumeralID = ContentSection.ChildNodes[i].ChildNodes["#text"].InnerText.Remove(0, 8);
-						articleIndex = article.NumeralID;
+						string ArticleID = ContentSection.ChildNodes[i].ChildNodes["#text"].InnerText.Remove(0, 8);
 
-						i++;
-
-						if (ContentSection.ChildNodes[i].Name != "div")
+						if (IsNumeric(ArticleID))
 						{
-							throw new Exception($"The next <div> at {i} after Article is not another <div> that describes the article.");
+							Article article = new Article();
+							article.NumeralID = ArticleID;
+							articleIndex = article.NumeralID;
+
+							i++;
+
+							if (ContentSection.ChildNodes[i].Name != "div")
+							{
+								throw new Exception($"The next <div> at {i} after Article is not another <div> that describes the article.");
+							}
+
+							article.Description = ContentSection.ChildNodes[i].InnerText.Trim();
+							CodeOfLaws[TitleNumeralID][ChapterNumeralID].Articles.Add(article);
 						}
 
-						article.Description = ContentSection.ChildNodes[i].InnerText.Trim();
-						CodeOfLaws[TitleNumeralID][ChapterNumeralID].Articles.Add(article);
+						else
+						{
+							SubArticle subArticle = new SubArticle();
+							subArticle.NumeralID = ArticleID;
+							i++;
+							subArticle.Description = ContentSection.ChildNodes[i].InnerText;
+							i++;
+
+							while (true)
+							{
+								if (ContentSection.ChildNodes[i].InnerText.StartsWith(History)
+										|| ContentSection.ChildNodes[i].InnerText.StartsWith(CodeCommissionersNote)
+										|| ContentSection.ChildNodes[i].InnerText.StartsWith(EditorsNote)
+										|| ContentSection.ChildNodes[i].InnerText.StartsWith(EffectOfAmendment)
+										|| ContentSection.ChildNodes[i].Name == "span"
+										|| ContentSection.ChildNodes[i].Name == "div")
+								{
+									i--;
+									break;
+								}
+
+								else if (ContentSection.ChildNodes[i].Name == "#text")
+								{
+									subArticle.Paragraphs.Add(ContentSection.ChildNodes[i].InnerText);
+									i++;
+								}
+
+								else
+								{
+									throw new Exception($"Unexpected node while scanning through a <span> Section.");
+								}
+							}
+
+							((Section)CodeOfLaws[TitleNumeralID][ChapterNumeralID][typeof(Section), sectionIndex]).SubArticles.Add(subArticle);
+						}
 
 						continue;
 					}
 
-					else if (ContentSection.ChildNodes[i].InnerText.StartsWith("CHAPTER "))
-					{
-						i++; //The next line is just the Chapter description, skip it
-						continue; //We should already have a Chapter object for this chapter, so just move on through the for loop
-					}
-
 					else if (ContentSection.ChildNodes[i].InnerText.StartsWith("Title "))
 					{
+						//TODO: Left off here. Managing <div> is getting sloppy since there are many iterations of the order of nodes at the beginning. Some Chapters have commissioner's note under the Chapter, some have Editor's Notes under an Article, etc.
+
+						i++;
+
+						while (true)
+						{
+							if (ContentSection.ChildNodes[i].Name == "div")
+							{
+								if (ContentSection.ChildNodes[i].InnerText.StartsWith("ARTICLE "))
+								{
+									HasArticle = true;
+									i--;
+									break;
+								}
+							}
+
+							else if (ContentSection.ChildNodes[i].Name == "#text")
+							{
+								if (ContentSection.ChildNodes[i].InnerText.StartsWith(CodeCommissionersNote))
+								{
+									i++;
+									CodeOfLaws[TitleNumeralID][ChapterNumeralID].CodeCommissionersNote.Add(ContentSection.ChildNodes[i].InnerText);
+								}
+
+								else if (ContentSection.ChildNodes[i].InnerText.StartsWith(EditorsNote))
+								{
+									i++;
+									((Article)CodeOfLaws[TitleNumeralID][ChapterNumeralID][typeof(Article), articleIndex]).EditorsNotes.Add(ContentSection.ChildNodes[i].InnerText);
+								}
+							}
+
+							else if (ContentSection.ChildNodes[i].Name == "span")
+							{
+								i--;
+								break;
+							}
+
+							i++;
+						}
+
+						if (!HasArticle)
+						{
+							Article article = new Article() { NumeralID = "0", Description = "This Chapter does not contain Articles" };
+							CodeOfLaws[TitleNumeralID][ChapterNumeralID].Articles.Add(article);
+						}
+
 						continue; // We should already have a Title object for this title, so just move on through the for loop
 					}
 
@@ -567,11 +661,22 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 		/// <returns>An HtmlNode that can be inserted into a HtmlNodeCollection</returns>
 		private HtmlNode _TEMPORARY_GetTitle1Chapter7(HtmlAgilityPack.HtmlDocument doc)
 		{
-			string XPath = CodeOfLaws.ContentSectionXPath + "/table/td/a[starts-with(@href, '/code')]";
+			string XPath = CodeOfLaws.ContentSectionXPath + "/table/td";
 
-			var newNode = doc.DocumentNode.SelectSingleNode(XPath);
+			var a = doc.DocumentNode.SelectNodes(XPath);
+			HtmlNode test = new HtmlNode(HtmlNodeType.Element, doc, 7) { Name = "tr" };
+
+			foreach (var node in a)
+			{
+				test.ChildNodes.Add(node);
+			}
 			
-			return newNode;
+			return test;
+		}
+
+		private bool IsNumeric(string value)
+		{
+			return value.All(char.IsNumber);
 		}
 	}
 }

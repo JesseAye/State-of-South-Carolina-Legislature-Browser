@@ -197,6 +197,7 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 		/// The List of Articles within the parent object
 		/// </summary>
 		public List<Article> Articles { get; } = new List<Article>();
+		public List<string> CodeCommissionersNote { get; } = new List<string>();
 
 		/// <summary>
 		/// The URL of this sub-unit
@@ -302,6 +303,8 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 		/// </summary>
 		public List<Section> Sections { get; } = new List<Section>();
 
+		public List<string> EditorsNotes { get; } = new List<string>();
+
 		/// <summary>
 		/// Get a <see cref="Section"/> from <see cref="Sections">Sections</see> based on it's NumeralID
 		/// </summary>
@@ -351,9 +354,15 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 	public class Section : LawSubUnit
 	{
 		public List<string> Paragraphs = new List<string>();
+		public List<SubArticle> SubArticles = new List<SubArticle>(); // We are assuming that any SubArticles appear after the standard Paragraphs and before History
 		public List<string> History = new List<string>();
 		public List<string> CodeCommissionersNote = new List<string>();
 		public List<string> EditorsNote = new List<string>();
 		public List<string> EffectOfAmendment = new List<string>();
+	}
+
+	public class SubArticle : LawSubUnit
+	{
+		public List<string> Paragraphs = new List<string>();
 	}
 }
