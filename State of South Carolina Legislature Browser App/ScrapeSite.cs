@@ -1,10 +1,6 @@
 ﻿using HtmlAgilityPack;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace State_of_South_Carolina_Legislature_Browser_App
 {
@@ -22,7 +18,7 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 		/// </summary>
 		/// <param name="Document">The full page <see cref="HtmlAgilityPack.HtmlDocument">HtmlDocument</see></param> to be cleaned
 		/// <returns>A single <see cref="HtmlNode"/> with the <see cref="HtmlNode.ChildNodes">ChildNodes</see> that make up the laws we want to scrape</returns>
-		public static HtmlNode CleanContentSection(HtmlAgilityPack.HtmlDocument Document)
+		public static HtmlNode CleanContentSection(HtmlDocument Document)
 		{
 			List<HtmlNode> XPathsToRemove = Document.DocumentNode.SelectSingleNode(CodeOfLaws.ContentSectionXPath).ChildNodes
 																   .Where(node => node.Name == "br")

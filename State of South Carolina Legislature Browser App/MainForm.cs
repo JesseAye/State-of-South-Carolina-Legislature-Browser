@@ -25,7 +25,7 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 		{
 			LoadTitles();
 
-			GetFirstArticleSection();
+			//GetFirstArticleSection();
 			LoadChapters();
 		}
 
@@ -59,8 +59,9 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 		/// </summary>
 		private void LoadChapters()
 		{
-			throw new NotImplementedException();
-			string XPathChapter = CodeOfLaws.ContentSectionXPath + "/table/tr/td/a[starts-with(@href, '/code')]";
+			//throw new NotImplementedException();
+			//string XPathChapter = CodeOfLaws.ContentSectionXPath + "/table/tr/td/a[starts-with(@href, '/code')]";
+			string XPathChapter = CodeOfLaws.ContentSectionXPath + "/table/tr";
 
 			foreach (Title title in CodeOfLaws.Titles)
 			{
@@ -72,18 +73,18 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 					AllChapters.Insert(4, _TEMPORARY_GetTitle1Chapter7(TitleDoc));
 				}
 
-				//List<Chapter> ChapterNodes = 
+				//CodeOfLaws[title.NumeralID].Chapters.Add(new Chapter() { NumeralID = AllChapters[ });
 			}
 		}
 
 		/// <summary>
 		/// Get's the Chapter's webpage, cleans up the <![CDATA[<div id="contentsection">]]>, parses the <see cref="HtmlNode">HtmlNodes</see>, and creates a <see cref="Chapter"/> object
 		/// </summary>
-		private void ParseChapter(string ChapterLink)
+		private void ParseChapter(string ChapterLink, string TitleNumeralID, string ChapterNumeralID)
 		{
-			HtmlAgilityPack.HtmlDocument Chapter1Doc = ScrapeSite.GetPage(Domain + ChapterLink);
+			HtmlAgilityPack.HtmlDocument ChapterDocument = ScrapeSite.GetPage(Domain + ChapterLink);
 
-			HtmlNode ContentSection = ScrapeSite.CleanContentSection(Chapter1Doc);
+			HtmlNode ContentSection = ScrapeSite.CleanContentSection(ChapterDocument);
 
 			int SectionCount = 0;
 			int HistoryCount = 0;
@@ -96,7 +97,6 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 			string EditorsNote = "\r\nEditor's Note";
 			string EffectOfAmendment = "\r\nEffect of Amendment";
 
-			Chapter chapter1 = new Chapter() { NumeralID = "1" };
 			string articleIndex = "0";
 			string sectionIndex = "0";
 
@@ -111,7 +111,7 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 						throw new Exception($"Could not parse a <span> within the webpage. The InnerText \"{ContentSection.ChildNodes[i].InnerText}\" did not begin with Section");
 					}
 
-					section.NumeralID = ContentSection.ChildNodes[i].ChildNodes["a"].Attributes["name"].Value.Replace($"1-{chapter1.NumeralID}-", "").Trim('.');
+					section.NumeralID = ContentSection.ChildNodes[i].ChildNodes["a"].Attributes["name"].Value.Replace($"{TitleNumeralID}-{ChapterNumeralID}-", "").Trim('.');
 					sectionIndex = section.NumeralID;
 					SectionCount++;
 					i++; //Next line should be the Section description
@@ -152,7 +152,7 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 						}
 					}
 
-					chapter1.Articles.Where(article => article.NumeralID == articleIndex.ToString()).First().Sections.Add(section);
+					((Article)CodeOfLaws[TitleNumeralID][ChapterNumeralID][typeof(Article), articleIndex]).Sections.Add(section);
 				}
 
 				else if (ContentSection.ChildNodes[i].InnerText.StartsWith(History))
@@ -173,15 +173,13 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 
 						else if (ContentSection.ChildNodes[i].Name == "#text")
 						{
-							chapter1.Articles.Where(article => article.NumeralID == articleIndex.ToString()).First()
-												.Sections.Where(section => section.NumeralID == sectionIndex).First()
-												.History.Add(ContentSection.ChildNodes[i].InnerText.Replace(History, ""));
+							((Section)CodeOfLaws[TitleNumeralID][ChapterNumeralID][typeof(Section), sectionIndex]).History.Add(ContentSection.ChildNodes[i].InnerText.Replace(History, ""));
 							i++;
 						}
 
 						else
 						{
-							throw new Exception($"Unexpected node while scanning through HISTORY: of Section {chapter1.NumeralID}-{articleIndex}-{sectionIndex}");
+							throw new Exception($"Unexpected node while scanning through HISTORY: of Section {TitleNumeralID}-{ChapterNumeralID}-{sectionIndex}");
 						}
 					}
 				}
@@ -204,15 +202,13 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 
 						else if (ContentSection.ChildNodes[i].Name == "#text")
 						{
-							chapter1.Articles.Where(article => article.NumeralID == articleIndex.ToString()).First()
-												.Sections.Where(section => section.NumeralID == sectionIndex).First()
-												.CodeCommissionersNote.Add(ContentSection.ChildNodes[i].InnerText);
+							((Section)CodeOfLaws[TitleNumeralID][ChapterNumeralID][typeof(Section), sectionIndex]).CodeCommissionersNote.Add(ContentSection.ChildNodes[i].InnerText);
 							i++;
 						}
 
 						else
 						{
-							throw new Exception($"Unexpected node while scanning through Code Commissioner's Note of Section {chapter1.NumeralID}-{articleIndex}-{sectionIndex}");
+							throw new Exception($"Unexpected node while scanning through Code Commissioner's Note of Section {TitleNumeralID}-{ChapterNumeralID}-{sectionIndex}");
 						}
 					}
 				}
@@ -234,15 +230,13 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 
 						else if (ContentSection.ChildNodes[i].Name == "#text")
 						{
-							chapter1.Articles.Where(article => article.NumeralID == articleIndex.ToString()).First()
-												.Sections.Where(section => section.NumeralID == sectionIndex).First()
-												.EditorsNote.Add(ContentSection.ChildNodes[i].InnerText);
+							((Section)CodeOfLaws[TitleNumeralID][ChapterNumeralID][typeof(Section), sectionIndex]).EditorsNote.Add(ContentSection.ChildNodes[i].InnerText);
 							i++;
 						}
 
 						else
 						{
-							throw new Exception($"Unexpected node while scanning through Editor's Note of Section {chapter1.NumeralID}-{articleIndex}-{sectionIndex}");
+							throw new Exception($"Unexpected node while scanning through Editor's Note of Section {TitleNumeralID} - {ChapterNumeralID}-{sectionIndex}");
 						}
 					}
 				}
@@ -263,15 +257,13 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 
 						else if (ContentSection.ChildNodes[i].Name == "#text")
 						{
-							chapter1.Articles.Where(article => article.NumeralID == articleIndex.ToString()).First()
-												.Sections.Where(section => section.NumeralID == sectionIndex).First()
-												.EffectOfAmendment.Add(ContentSection.ChildNodes[i].InnerText);
+							((Section)CodeOfLaws[TitleNumeralID][ChapterNumeralID][typeof(Section), sectionIndex]).EffectOfAmendment.Add(ContentSection.ChildNodes[i].InnerText);
 							i++;
 						}
 
 						else
 						{
-							throw new Exception($"Unexpected node while scanning through Effect of Amendment of Section {chapter1.NumeralID}-{articleIndex}-{sectionIndex}");
+							throw new Exception($"Unexpected node while scanning through Effect of Amendment of Section {TitleNumeralID} - {ChapterNumeralID}-{sectionIndex}");
 						}
 					}
 				}
@@ -292,7 +284,7 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 						}
 
 						article.Description = ContentSection.ChildNodes[i].InnerText.Trim();
-						chapter1.Articles.Add(article);
+						CodeOfLaws[TitleNumeralID][ChapterNumeralID].Articles.Add(article);
 
 						continue;
 					}
@@ -316,7 +308,7 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 
 				else
 				{//BP Here and check for any outliers
-				 //TODO: Handle instances such as t01c001.php ContentSection.ChildNodes[331].InnerHTML is "\r\nThe State Insect"
+
 				}
 			}
 		}

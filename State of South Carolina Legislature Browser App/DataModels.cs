@@ -90,6 +90,27 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 				throw new Exception($"CodeOfLaws[{NumeralID}] does not exist. No Title with a NumeralID of {NumeralID} could be found in CodeOfLaws.Titles.");
 			}
 		}
+
+		/// <summary>
+		/// Get a <see cref="Title"/> from <see cref="CodeOfLaws"/> based on it's NumeralID
+		/// </summary>
+		/// <param name="NumeralID">The Title's number</param>
+		/// <returns>The <see cref="Title"/> with the specified NumeralID</returns>
+		public Title this[string NumeralID]
+		{
+			get
+			{
+				foreach (Title title in Titles)
+				{
+					if (title.NumeralID == NumeralID)
+					{
+						return title;
+					}
+				}
+
+				throw new Exception($"CodeOfLaws[{NumeralID}] does not exist. No Title with a NumeralID of {NumeralID} could be found in CodeOfLaws.Titles.");
+			}
+		}
 	}
 
 	/// <summary>
@@ -144,6 +165,27 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 				throw new Exception($"Title {this.NumeralID} Chapter {NumeralID} does not exist. No Chapter with a NumeralID of {NumeralID} could be found in Title {this.NumeralID}.Chapters.");
 			}
 		}
+
+		/// <summary>
+		/// Get a <see cref="Chapter"/> from <see cref="Chapters">Chapters</see> based on it's NumeralID
+		/// </summary>
+		/// <param name="NumeralID">The Chapter's number</param>
+		/// <returns>The <see cref="Chapter"/> with the specified NumeralID</returns>
+		public Chapter this[string NumeralID]
+		{
+			get
+			{
+				foreach (Chapter chapter in Chapters)
+				{
+					if (chapter.NumeralID == NumeralID)
+					{
+						return chapter;
+					}
+				}
+
+				throw new Exception($"Title {this.NumeralID} Chapter {NumeralID} does not exist. No Chapter with a NumeralID of {NumeralID} could be found in Title {this.NumeralID}.Chapters.");
+			}
+		}
 	}
 
 	/// <summary>
@@ -161,24 +203,88 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 		/// </summary>
 		public string URL { get; set; }
 
+		//TODO: Determine if it's necessary to decide between returning an Article or a Section.
+
 		/// <summary>
 		/// Get a <see cref="Section"/> from <see cref="Article.Sections">Article.Sections</see> based on it's NumeralID
 		/// </summary>
 		/// <param name="NumeralID">The Section's number</param>
 		/// <returns>The <see cref="Section"/> with the specified NumeralID</returns>
-		public Section this[int NumeralID]
+		public object this[Type type, int NumeralID]
 		{
 			get
 			{
-				foreach (Article article in Articles)
+				if (type == typeof(Section))
 				{
-					foreach (Section section in article.Sections)
+					foreach (Article article in Articles)
 					{
-						if (section.NumeralID == NumeralID.ToString())
+						foreach (Section section in article.Sections)
 						{
-							return section;
+							if (section.NumeralID == NumeralID.ToString())
+							{
+								return section;
+							}
 						}
 					}
+				}
+
+				else if (type == typeof(Article))
+				{
+					foreach (Article article in Articles)
+					{
+						if (article.NumeralID == NumeralID.ToString())
+						{
+							return article;
+						}
+					}
+				}
+
+				else
+				{
+					throw new Exception("Chapter[] requires type Section or Article be specified");
+				}
+
+				throw new Exception($"\"Chapter {this.NumeralID} - {Description}\" does not contain a Section ending in {NumeralID}.");
+			}
+		}
+
+		/// <summary>
+		/// Get a <see cref="Section"/> from <see cref="Article.Sections">Article.Sections</see> based on it's NumeralID
+		/// </summary>
+		/// <param name="NumeralID">The Section's number</param>
+		/// <returns>The <see cref="Section"/> with the specified NumeralID</returns>
+		public object this[Type type, string NumeralID]
+		{
+			get
+			{
+				if (type == typeof(Section))
+				{
+					foreach (Article article in Articles)
+					{
+						foreach (Section section in article.Sections)
+						{
+							if (section.NumeralID == NumeralID)
+							{
+								return section;
+							}
+						}
+					}
+				}
+
+				else if (type == typeof(Article))
+				{
+					foreach (Article article in Articles)
+					{
+						if (article.NumeralID == NumeralID)
+						{
+							return article;
+						}
+					}
+				}
+
+				else
+				{
+					throw new Exception("Chapter[] requires type Section or Article be specified");
 				}
 
 				throw new Exception($"\"Chapter {this.NumeralID} - {Description}\" does not contain a Section ending in {NumeralID}.");
@@ -195,6 +301,48 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 		/// The List of Sections within the parent object
 		/// </summary>
 		public List<Section> Sections { get; } = new List<Section>();
+
+		/// <summary>
+		/// Get a <see cref="Section"/> from <see cref="Sections">Sections</see> based on it's NumeralID
+		/// </summary>
+		/// <param name="NumeralID">The Section's number</param>
+		/// <returns>The <see cref="Section"/> with the specified NumeralID</returns>
+		public Section this[int NumeralID]
+		{
+			get
+			{
+				foreach (Section section in Sections)
+				{
+					if (section.NumeralID == NumeralID.ToString())
+					{
+						return section;
+					}
+				}
+
+				throw new Exception($"Could not find Section {NumeralID} in Article {this.NumeralID}");
+			}
+		}
+
+		/// <summary>
+		/// Get a <see cref="Section"/> from <see cref="Sections">Sections</see> based on it's NumeralID
+		/// </summary>
+		/// <param name="NumeralID">The Section's number</param>
+		/// <returns>The <see cref="Section"/> with the specified NumeralID</returns>
+		public Section this[string NumeralID]
+		{
+			get
+			{
+				foreach (Section section in Sections)
+				{
+					if (section.NumeralID == NumeralID)
+					{
+						return section;
+					}
+				}
+
+				throw new Exception($"Could not find Section {NumeralID} in Article {this.NumeralID}");
+			}
+		}
 	}
 
 	/// <summary>
