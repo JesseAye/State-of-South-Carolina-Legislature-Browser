@@ -648,7 +648,7 @@ namespace State_of_South_Carolina_Legislature_Browser_App
 
 				else
 				{//BP Here and check for any outliers
-					//TODO: Handle instances such as t01c001.php ContentSection.ChildNodes[331].InnerHTML is "\r\nThe State Insect"
+					
 				}
 			}
 		}
